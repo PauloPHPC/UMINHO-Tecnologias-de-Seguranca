@@ -28,8 +28,8 @@ def client_action(host, port, action, data):
 
 # Exemplo de uso da função ajustada:
 # Teste de envio de mensagem
-client_action('localhost', 54321, 'delete_group', {
-    "username": "paulo4",
+client_action('localhost', 12345, 'singup', {
+    "username": "paulo3",
     "password": "123456",
     "message": "ola mundo",
     "destination": "paulo",
