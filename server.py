@@ -259,19 +259,20 @@ def client_handler(connection):
 
                         # Buscar mensagens diretas para o usuário e mensagens enviadas a grupos dos quais ele é membro
                         cursor.execute(
-                            """
-                        SELECT m.content, m.timestamp, u.username AS sender_username
-                        FROM messages m
-                        JOIN users u ON m.user_id = u.id
-                        WHERE m.destination = ?  -- Mensagens diretas para o usuário
-                        UNION
-                        SELECT m.content, m.timestamp, u.username AS sender_username
-                        FROM messages m
-                        JOIN users u ON m.user_id = u.id
-                        JOIN group_members gm ON m.destination = gm.group_id
-                        WHERE gm.user_id = ?  -- Mensagens para os grupos dos quais o usuário é membro
-                        ORDER BY m.timestamp DESC
-                        """,
+                             """
+                            SELECT m.content, m.timestamp, u.username AS sender_username, '' AS group_name
+                            FROM messages m
+                            JOIN users u ON m.user_id = u.id
+                            WHERE m.destination = ?  -- Mensagens diretas para o usuário
+                            UNION
+                            SELECT m.content, m.timestamp, u.username AS sender_username, g.name AS group_name
+                            FROM messages m
+                            JOIN users u ON m.user_id = u.id
+                            JOIN groups g ON m.destination = g.name
+                            JOIN group_members gm ON g.id = gm.group_id
+                            WHERE gm.user_id = ? AND m.destination = g.name  -- Mensagens para os grupos dos quais o usuário é membro
+                            ORDER BY m.timestamp DESC
+                            """,
                             (user_id, user_id),
                         )
 
@@ -313,89 +314,79 @@ def client_handler(connection):
                     connection.send(dumps(response).encode())
 
                 elif action == "add_member":
-                    new_member_username = member_usernames
-                    # Verifica se o usuário que está adicionando é membro do grupo
-                    cursor.execute(
-                        "SELECT group_id FROM groups WHERE name = ?", (group_name,)
-                    )
-                    group_result = cursor.fetchone()
-                    if group_result:
-                        group_id = group_result[0]
-                        cursor.execute(
-                            "SELECT * FROM group_members WHERE user_id = ? AND group_id = ?",
-                            (user_id, group_id),
-                        )
-                        if cursor.fetchone():
-                            # Adiciona novo membro ao grupo
-                            cursor.execute(
-                                "SELECT id FROM users WHERE username = ?",
-                                (new_member_username,),
-                            )
-                            new_member_id_result = cursor.fetchone()
-                            if new_member_id_result:
-                                new_member_id = new_member_id_result[0]
-                                cursor.execute(
-                                    "INSERT INTO group_members (group_id, user_id) VALUES (?, ?)",
-                                    (group_id, new_member_id),
-                                )
-                                conn.commit()
-                                response = {
-                                    "status": "success",
-                                    "message": "Member added successfully",
-                                }
+                    new_member_username = data.get('member_usernames', '')
+
+                    # Primeiro, obtenha o user_id do usuário que está fazendo o pedido
+                    cursor.execute("SELECT id FROM users WHERE username = ?", (username,))
+                    user_id_result = cursor.fetchone()
+                    if user_id_result:
+                        user_id = user_id_result[0]
+
+                        # Verifica se o grupo existe
+                        cursor.execute("SELECT id FROM groups WHERE name = ?", (group_name,))
+                        group_result = cursor.fetchone()
+                        if group_result:
+                            group_id = group_result[0]
+
+                            # Verifica se o usuário é membro do grupo
+                            cursor.execute("SELECT * FROM group_members WHERE user_id = ? AND group_id = ?", (user_id, group_id))
+                            if cursor.fetchone():
+                                # Tenta adicionar novo membro ao grupo
+                                cursor.execute("SELECT id FROM users WHERE username = ?", (new_member_username,))
+                                new_member_id_result = cursor.fetchone()
+                                if new_member_id_result:
+                                    new_member_id = new_member_id_result[0]
+                                    cursor.execute("INSERT INTO group_members (group_id, user_id) VALUES (?, ?)", (group_id, new_member_id))
+                                    conn.commit()
+                                    response = {"status": "success", "message": "Member added successfully"}
+                                else:
+                                    response = {"status": "error", "message": "New member username not found"}
                             else:
-                                response = {
-                                    "status": "error",
-                                    "message": "New member username not found",
-                                }
+                                response = {"status": "error", "message": "User is not a member of the group"}
                         else:
-                            response = {
-                                "status": "error",
-                                "message": "User is not a member of the group",
-                            }
+                            response = {"status": "error", "message": "Group not found"}
                     else:
-                        response = {"status": "error", "message": "Group not found"}
+                        response = {"status": "error", "message": "User not found"}
+
                     connection.send(dumps(response).encode("utf-8"))
 
                 elif action == "delete_group":
-                    # Verifica se o usuário que está deletando é membro do grupo
-                    cursor.execute(
-                        "SELECT group_id FROM groups WHERE name = ?", (group_name,)
-                    )
-                    group_result = cursor.fetchone()
-                    if group_result:
-                        group_id = group_result[0]
-                        cursor.execute(
-                            "SELECT * FROM group_members WHERE user_id = ? AND group_id = ?",
-                            (user_id, group_id),
-                        )
-                        if cursor.fetchone():
-                            # Deleta todas as referências dos membros e o grupo
-                            cursor.execute(
-                                "DELETE FROM group_members WHERE group_id = ?",
-                                (group_id,),
-                            )
-                            cursor.execute(
-                                "DELETE FROM groups WHERE id = ?", (group_id,)
-                            )
-                            conn.commit()
-                            response = {
-                                "status": "success",
-                                "message": "Group deleted successfully",
-                            }
+                    username = data.get('username', '')
+                    group_name = data.get('group_name', '')
+
+                    # Primeiro, obtenha o user_id do usuário que está fazendo a solicitação
+                    cursor.execute("SELECT id FROM users WHERE username = ?", (username,))
+                    user_id_result = cursor.fetchone()
+                    if user_id_result:
+                        user_id = user_id_result[0]
+
+                        # Verifica se o grupo existe
+                        cursor.execute("SELECT id FROM groups WHERE name = ?", (group_name,))
+                        group_result = cursor.fetchone()
+                        if group_result:
+                            group_id = group_result[0]
+
+                            # Verifica se o usuário é membro do grupo
+                            cursor.execute("SELECT * FROM group_members WHERE user_id = ? AND group_id = ?", (user_id, group_id))
+                            if cursor.fetchone():
+                                # Deleta todas as referências dos membros e o grupo
+                                cursor.execute("DELETE FROM group_members WHERE group_id = ?", (group_id,))
+                                cursor.execute("DELETE FROM groups WHERE id = ?", (group_id,))
+                                conn.commit()
+                                response = {"status": "success", "message": "Group deleted successfully"}
+                            else:
+                                response = {"status": "error", "message": "User is not a member of the group"}
                         else:
-                            response = {
-                                "status": "error",
-                                "message": "User is not a member of the group",
-                            }
+                            response = {"status": "error", "message": "Group not found"}
                     else:
-                        response = {"status": "error", "message": "Group not found"}
+                        response = {"status": "error", "message": "User not found"}
+
                     connection.send(dumps(response).encode("utf-8"))
 
         except Exception as e:
             print(f"Database error: {e}")
             connection.send(b"Error")
-
+    
     cursor.close()
     conn.close()
     connection.close()
