@@ -1,7 +1,8 @@
 import socket
 import threading
+import bson
 from pymongo import MongoClient
-from bson.json_util import loads, dumps
+#from bson.json_util import loads, dumps
 import sqlite3
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives import hashes
@@ -106,8 +107,8 @@ class Server:
             data = connection.recv(1024)
             if not data:
                 break
-            data = loads(data)  # Deserialize BSON to Python dict
-
+            data = bson.decode(data)  # Deserialize BSON to Python dict
+            print(data)
             action = data.get("action", "")
             username = data.get("username", "")
             password = data.get("password", "")
@@ -127,9 +128,9 @@ class Server:
                         )
                         conn.commit()
                         connection.send(
-                            dumps(
+                            bson.encode(
                                 {"status": "success", "message": "User created!"}
-                            ).encode()
+                            )
                         )
 
                     elif action == "send_message_group":
@@ -335,7 +336,7 @@ class Server:
                                 "status": "error",
                                 "message": "Username not found",
                             }
-                        connection.send(dumps(response).encode())
+                        connection.send(bson.encode(response))
 
                     elif action == "add_member":
                         new_member_username = data.get("member_usernames", "")
