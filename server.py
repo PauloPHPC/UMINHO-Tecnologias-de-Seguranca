@@ -406,7 +406,7 @@ class Server:
                         else:
                             response = {"status": "error", "message": "User not found"}
 
-                        connection.send(dumps(response).encode("utf-8"))
+                        connection.send(bson.encode(response))
 
                     elif action == "delete_group":
                         username = data.get("username", "")
@@ -460,7 +460,7 @@ class Server:
                         else:
                             response = {"status": "error", "message": "User not found"}
 
-                        connection.send(dumps(response).encode("utf-8"))
+                        connection.send(bson.encode(response))
 
             except Exception as e:
                 print(f"Database error: {e}")

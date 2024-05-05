@@ -223,7 +223,7 @@ void sendMessageToGroup(int sock, const char* username, const char* groupName, c
     msg_request = bson_new();
     BSON_APPEND_UTF8(msg_request, "action", "send_message_group");
     BSON_APPEND_UTF8(msg_request, "username", username);
-    BSON_APPEND_UTF8(msg_request, "group_name", groupName);
+    BSON_APPEND_UTF8(msg_request, "destination", groupName);
     BSON_APPEND_UTF8(msg_request, "message", message);
 
     // Serialize the BSON object
@@ -310,6 +310,79 @@ void create_group(int sock, const char* group_name, char** user_names, int num_u
     }
 }
 
+void delete_group(int sock, const char* username, const char* group_name) {
+    char command[1024];
+    uint8_t* buf;
+    uint32_t length;
+    bson_t* doc;
+
+    // First, delete the group on the Linux system
+    sprintf(command, "./src/delete_group.sh %s", group_name);
+    if (system(command) != 0) {
+        fprintf(stderr, "Failed to delete Linux group '%s'.\n", group_name);
+        return;
+    }
+
+    // Now send details to the Python server for application-level group deletion
+    doc = bson_new();
+    BSON_APPEND_UTF8(doc, "action", "delete_group");
+    BSON_APPEND_UTF8(doc, "username", username);
+    BSON_APPEND_UTF8(doc, "group_name", group_name);
+
+    buf = bson_destroy_with_steal(doc, true, &length);
+    if (send(sock, buf, length, 0) < 0) {
+        perror("Failed to send data to server");
+    }
+    bson_free(buf);
+
+    char buffer[1024];
+    int bytesReceived = recv(sock, buffer, sizeof(buffer), 0);
+    if (bytesReceived > 0) {
+        printf("Server response: %s\n", buffer);
+    }
+    else {
+        perror("Failed to receive response");
+    }
+}
+
+void add_member_to_group(int sock, const char* username, const char* group_name, const char* new_member) {
+    char command[1024];
+    bson_t* doc;
+    uint8_t* buf;
+    uint32_t length;
+
+    // Construct the command to execute the shell script
+    sprintf(command, "./src/add_member.sh %s %s", new_member, group_name);
+    if (system(command) != 0) {
+        fprintf(stderr, "Failed to add user to Linux group.\n");
+        return;
+    }
+
+    // Prepare BSON document to send to the server
+    doc = bson_new();
+    BSON_APPEND_UTF8(doc, "action", "add_member");
+    BSON_APPEND_UTF8(doc, "username", username); // Username who is performing the action
+    BSON_APPEND_UTF8(doc, "group_name", group_name);
+    BSON_APPEND_UTF8(doc, "member_usernames", new_member); // Username to be added
+
+    buf = bson_destroy_with_steal(doc, true, &length);
+    if (send(sock, buf, length, 0) < 0) {
+        perror("Failed to send data to server");
+    }
+    bson_free(buf);
+
+    // Wait for the server's response
+    char buffer[1024];
+    int bytesReceived = recv(sock, buffer, sizeof(buffer), 0);
+    if (bytesReceived > 0) {
+        printf("Server response: %s\n", buffer);
+    }
+    else {
+        perror("Failed to receive response");
+    }
+}
+
+
 int main() {
     int sock;
     struct sockaddr_in server_addr;
@@ -375,8 +448,11 @@ int main() {
                         char message[512];
                         printf("Destination:\n");
                         scanf("%9s", receiver);
+                        clear_input_buffer();
                         printf("Message:\n");
-                        scanf("%511s", message);
+                        fgets(message, 511, stdin);
+                        message[strcspn(message, "\n")] = 0;
+                        clear_input_buffer();
                         sendMessage(sock, user, receiver, message);
                         break;
 
@@ -389,8 +465,11 @@ int main() {
                         char message_group[512];
                         printf("Group Name:\n");
                         scanf("%9s", group_name);
+                        clear_input_buffer();
                         printf("Message:\n");
-                        scanf("%511s", message_group);
+                        fgets(message_group, 511, stdin);
+                        message_group[strcspn(message_group, "\n")] = 0;
+                        clear_input_buffer();
 
 
                         sendMessageToGroup(sock, user, group_name, message_group);
@@ -404,10 +483,10 @@ int main() {
 
                         printf("Group name:\n");
                         scanf("%9s", grp_nme);  // Safe input with limit
-
+                        clear_input_buffer();
                         printf("How many users?\n");
                         scanf("%d", &num_users);  // Ensure & is used to store the value in num_users
-
+                        clear_input_buffer();
                         // Allocate memory for storing pointers to user names
                         user_names = malloc(num_users * sizeof(char*));
                         if (user_names == NULL) {
@@ -429,8 +508,32 @@ int main() {
                         // Call the function to create a group
                         create_group(sock, grp_nme, user_names, num_users);
                         break;
+                    
+                    case 5:
+                        char group_delete[10];
+                        printf("Enter group to delete:\n");
+                        scanf("%9s", group_delete);
+                        clear_input_buffer();
+                        delete_group(sock, user, group_delete);
+                        break;
+
+                    case 6:
+                        char gp_name[10];
+                        char add_member[10];
+
+                        printf("Enter group name:\n");
+                        scanf("%s9", gp_name);
+                        clear_input_buffer();
+                        printf("Enter member name:\n");
+                        scanf("%s9", add_member);
+                        clear_input_buffer();
 
 
+                        add_member_to_group(sock, user, gp_name, add_member);
+
+
+
+                        break;
 
 
 
