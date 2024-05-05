@@ -158,36 +158,36 @@ class Server:
                                     cursor.execute(sql, params)
                                     conn.commit()
                                     connection.send(
-                                        dumps(
+                                        bson.encode(
                                             {
                                                 "status": "success",
                                                 "message": "Message sent to group!",
                                             }
-                                        ).encode()
+                                        )
                                     )
                                 else:
                                     connection.send(
-                                        dumps(
+                                        bson.encode(
                                             {
                                                 "status": "error",
                                                 "message": "User not in group!",
                                             }
-                                        ).encode()
+                                        )
                                     )
                             else:
                                 connection.send(
-                                    dumps(
+                                    bson.encode(
                                         {
                                             "status": "error",
                                             "message": "Destination not found!",
                                         }
-                                    ).encode()
+                                    )
                                 )
                         else:
                             connection.send(
-                                dumps(
+                                bson.encode(
                                     {"status": "error", "message": "Sender not found!"}
-                                ).encode()
+                                )
                             )
 
                     elif action == "send_message":
@@ -217,27 +217,27 @@ class Server:
                                 cursor.execute(sql, params)
                                 conn.commit()
                                 connection.send(
-                                    dumps(
+                                    bson.encode(
                                         {
                                             "status": "success",
                                             "message": "Message Sent!",
                                         }
-                                    ).encode()
+                                    )
                                 )
                             else:
                                 connection.send(
-                                    dumps(
+                                    bson.encode(
                                         {
                                             "status": "error",
                                             "message": "Receiver not found!",
                                         }
-                                    ).encode()
+                                    )
                                 )
                         else:
                             connection.send(
-                                dumps(
+                                bson.encode(
                                     {"status": "error", "message": "Sender not found!"}
-                                ).encode()
+                                )
                             )
 
                     elif action == "create_group":
@@ -265,9 +265,9 @@ class Server:
                                 )
                                 conn.commit()
                         connection.send(
-                            dumps(
+                            bson.encode(
                                 {"status": "success", "message": "Group created!"}
-                            ).encode()
+                            )
                         )
 
                     elif action == "get_messages":
@@ -300,18 +300,26 @@ class Server:
 
                             messages = cursor.fetchall()
                             if messages:
-                                connection.send(dumps(messages).encode())
+                                messages_dict = [{
+                                    "content": msg[0],
+                                    "timestamp": msg[1],
+                                    "sender": msg[2],
+                                    "group_name": msg[3]
+                                    }for msg in messages]
+                                
+                                connection.send(bson.encode({"data":messages_dict}))
+                                print(messages_dict)
                             else:
                                 connection.send(
-                                    dumps(
+                                    bson.encode(
                                         {"status": "success", "message": "No messages"}
-                                    ).encode()
+                                    )
                                 )
                         else:
                             connection.send(
-                                dumps(
+                                bson.encode(
                                     {"status": "Error", "message": "User not Found"}
-                                ).encode()
+                                )
                             )
 
                     elif action == "login":
