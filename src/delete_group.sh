@@ -10,7 +10,7 @@ fi
 group_name=$1
 
 # Delete the group
-if groupdel "$group_name"; then
+if sudo groupdel "$group_name"; then
     echo "Group '$group_name' successfully deleted."
     exit 0
 else

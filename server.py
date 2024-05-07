@@ -1,17 +1,8 @@
 import socket
 import threading
 import bson
-from pymongo import MongoClient
-#from bson.json_util import loads, dumps
+import ssl
 import sqlite3
-from cryptography.hazmat.primitives.asymmetric import padding
-from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.serialization import (
-    load_pem_public_key,
-    load_pem_private_key,
-    pkcs12,
-)
-import base64
 import bcrypt
 
 # Configuração do Banco de Dados SQLite
@@ -96,6 +87,8 @@ class Server:
         self.server_socket.bind((self.host, self.port))
         self.server_socket.listen(5)
         print(f"Server Started on {self.host}:{self.port}")
+        self.context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+        self.context.load_cert_chain(certfile='./server/SERVER.crt', keyfile='./server/SERVER.pem')
 
     def client_handler(self, connection):
         conn = sqlite3.connect(
@@ -121,7 +114,7 @@ class Server:
 
             try:
                 if "action" in data:
-                    if action == "singup":
+                    if action == "signup":
                         cursor.execute(
                             "INSERT INTO users (username, password) VALUES (?, ?)",
                             (username, hash_password(password)),
@@ -469,7 +462,8 @@ class Server:
         cursor.close()
         conn.close()
         connection.close()
-
+        
+        pass
     #    while True:
     #        client_socket, addr = server_socket.accept()
     #        print(f"Accepted connection from {addr}")
@@ -481,8 +475,9 @@ class Server:
             while True:
                 client_socket, client_address = self.server_socket.accept()
                 print(f"Accepted connection from {client_address}")
+                secure_socket = self.context.wrap_socket(client_socket, server_side=True)
                 client_thread = threading.Thread(
-                    target=self.client_handler, args=(client_socket,)
+                    target=self.client_handler, args=(secure_socket,)
                 )
                 client_thread.start()
         except KeyboardInterrupt:
