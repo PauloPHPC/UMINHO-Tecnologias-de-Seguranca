@@ -464,24 +464,28 @@ int main() {
 
     // END OF SSL AND SOCK CONFIG
 
-    int u_command;
-    do {
-    
+    int u_command = 99;
+    char user[10];
+    char pass[10];
+    while (u_command != 0) {
+
         printf("\n\nEscolha abaixo: \n1 - Sign Up \n2 - Login\n\n\n0 - SAIR\n\n");
         scanf("%d", &u_command);
         //while (getchar() != '\n');
-        if (u_command == 1) {
-            char user[10];
-            char pass[10];
+        switch (u_command) {
+        case 1:
+            //char user[10];
+            //char pass[10];
             printf("Usuario: \n");
             scanf("%9s", user);
             printf("Password: \n");
             scanf("%9s", pass);
             createUser(ssl, user, pass);
-        }
-        else if (u_command==2) {
-            char user[10];
-            char pass[10];
+            break;
+
+        case 2:
+            //char user[10];
+            //char pass[10];
             printf("Usuario: \n");
             scanf("%9s", user);
             printf("Password: \n");
@@ -489,7 +493,7 @@ int main() {
             //loginUser(sock, user, pass);
             if (loginUser(ssl, user, pass)) {
                 printf("Login Successful!\n");
-                int inner_command;
+                int inner_command = 99;
 
                 while (inner_command != 0) {
                     printf("\n\nEscolha o que deseja fazer:\n1 - Enviar uma mensagem\n2 - Ver mensagens recebidas\n3 - Enviar mensagem a grupo\n4 - Criar grupo\n5 - Excluir grupo\n6 - Adicionar membro a grupo\n\n\n0 - Logout\n");
@@ -562,7 +566,7 @@ int main() {
                         // Call the function to create a group
                         create_group(ssl, grp_nme, user_names, num_users);
                         break;
-                    
+
                     case 5:
                         char group_delete[10];
                         printf("Enter group to delete:\n");
@@ -593,24 +597,28 @@ int main() {
 
                     }
                 }
-            
-            
-            
-            
+
+
+
+
+
+
+
+                break;
+
+
+
+
+
             }
-        
-        
-        } 
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    } while (u_command != 0);
+
+
+
+
+
+
+        }
+    }
 
     // Implementar funcionalidades adicionais aqui
     // (Login, troca de mensagens, encerramento de conexão, etc.)

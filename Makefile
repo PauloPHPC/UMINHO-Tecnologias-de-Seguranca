@@ -14,7 +14,7 @@ $(TARGET): $(SRC)
 	$(CC) -o $@ $^ $(CFLAGS) $(LIBS)
 
 clean:
-	rm -f $(TARGET)
+	rm -f $(TARGET) chat.db
 
 runserver:
 	@echo "Checking for running server..."
@@ -24,6 +24,9 @@ runserver:
 		echo "Starting server..."; \
 		python3 $(PYTHON_SERVER_SCRIPT) & \
 	fi
+
+stopserver:
+	pkill -f server.py
 
 run: $(TARGET)
 	./$(TARGET)
