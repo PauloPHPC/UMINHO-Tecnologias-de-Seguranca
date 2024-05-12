@@ -101,7 +101,7 @@ class Server:
             if not data:
                 break
             data = bson.decode(data)  # Deserialize BSON to Python dict
-            print(data)
+            
             action = data.get("action", "")
             username = data.get("username", "")
             password = data.get("password", "")
