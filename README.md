@@ -1,6 +1,6 @@
 # TP03 TS
 
-Para o uso desta aplicaÁ„o È necess·ria a instalaÁ„o dos seguintes pacotes:
+Para o uso desta aplica√ß√£o √© necess√°ria a instala√ß√£o dos seguintes pacotes:
 
 Python (requirements.txt):
 - PyMongo
@@ -13,12 +13,13 @@ C:
 - MongoDB C Driver:
 	sudo apt-get install libbson-dev
 
-##### Funcionamento da aplicaÁ„o:
-ApÛs a instalaÁ„o das bibliotecas necess·rias, o makefile fornecido deve funcionar corretamente com os seguintes comandos:
-1. Make
-2. Iniciar o servidor atravÈs do comando "Make runserver"
-3. Iniciar o Cliente atravÈs do comando "Make run"
+##### Funcionamento da aplica√ß√£o:
+Ap√≥s a instala√ß√£o das bibliotecas necess√°rias, o makefile fornecido deve funcionar corretamente com os seguintes comandos:
+1. Make.
+2. Iniciar o servidor atrav√©s do comando "Make runserver".
+3. Iniciar o Cliente atrav√©s do comando "Make run".
+4. "Make stopserver" da kill no processo do servidor.
+   
+No primeiro uso √© necess√°rio a cria√ß√£o de usuarios, atrav√©s do "Sign Up" no menu inicial (criar√° usu√°rios no linux).
 
-No primeiro uso È necess·rio a criaÁ„o de usuarios, atravÈs do "Sign Up" no menu inicial (criar· usu·rios no linux).
-
-Para as aÁıes Create Group, Sign Up, Add Member e Delete Group ser· necess·rio a permiss„o de super usu·rio do Linux (sudo).
+Para as a√ß√µes Create Group, Sign Up, Add Member e Delete Group ser√° necess√°rio a permiss√£o de super usu√°rio do Linux (sudo).
